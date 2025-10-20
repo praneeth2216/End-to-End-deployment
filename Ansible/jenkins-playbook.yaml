@@ -2,9 +2,24 @@
 - hosts: jenkins
   become: true
   tasks:
+  - name: Update apt cache
+    apt:
+      update_cache: yes
+
+  - name: Install required system packages
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - gnupg2
+
   - name: add jenkins key
     apt_key:
-      url:  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+      url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
       state: present
 
   - name: add jenkins repo
@@ -31,3 +46,18 @@
     service:
       name: jenkins
       enabled: yes
+
+  - name: Wait for Jenkins to start up
+    wait_for:
+      port: 8080
+      delay: 10
+      timeout: 300
+
+  - name: Get initial admin password
+    command: cat /var/lib/jenkins/secrets/initialAdminPassword
+    register: jenkins_password
+    changed_when: false
+
+  - name: Print Jenkins initial admin password
+    debug:
+      var: jenkins_password.stdout

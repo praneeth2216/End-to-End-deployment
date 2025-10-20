@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-2"
 }
 
 # CREATE VPC
@@ -13,9 +13,9 @@ resource "aws_vpc" "project-vpc" {
 # CREATE 2 SUBNETS
 resource "aws_subnet" "project-public_subent_01" {
     vpc_id = aws_vpc.project-vpc.id
-    cidr_block = "10.1.1.0/24"
+    cidr_block = "10.0.1.0/24"
     map_public_ip_on_launch = "true"
-    availability_zone = "ap-south-1a"
+    availability_zone = "us-east-2a"
     tags = {
       Name = "project-public_subent_01"
     }
@@ -25,7 +25,7 @@ resource "aws_subnet" "project-public_subent_02" {
     vpc_id = aws_vpc.project-vpc.id
     cidr_block = "10.0.2.0/24"
     map_public_ip_on_launch = "true"
-    availability_zone = "ap-south-1b"
+    availability_zone = "us-east-2b"
     tags = {
       Name = "project-public_subent_02"
     }
@@ -68,19 +68,43 @@ resource "aws_route_table_association" "project-subent-2" {
 # CREATE SECURITY GROUP
 resource "aws_security_group" "project-sg" {
   name = "project-sg"
-  description = "Providing SSH Access"
-
+  description = "Security group for project services"
+  vpc_id = aws_vpc.project-vpc.id
 
   ingress {
     description = "SSH Access"
     from_port = 22
     to_port = 22
-    protocol = "SSH"
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Jenkins Access"
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "SonarQube Access"
+    from_port = 9000
+    to_port = 9000
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Flask App Access"
+    from_port = 5000
+    to_port = 5000
+    protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    description = "SSH Access"
+    description = "Allow all outbound traffic"
     from_port = 0
     to_port = 0
     protocol = "-1"
@@ -93,9 +117,9 @@ resource "aws_security_group" "project-sg" {
 
 # CREATING EC2
 resource "aws_instance" "demo-server" {
-    ami = "ami-0e35ddab05955cf57"
-    instance_type = "t2.medium"
-    key_name = "kubernetes"
+    ami = "ami-0199d4b5b8b4fde0e"
+    instance_type = "c7i-flex.large"
+    key_name = "Jenkins_master"
     subnet_id = aws_subnet.project-public_subent_01.id
     for_each = toset(["Ansible", "Jenkins", "Docker"])
     tags = {
