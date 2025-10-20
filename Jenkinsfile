@@ -14,6 +14,13 @@ pipeline {
         checkout scm
       }
     }
+    stage('Login to Docker Hub') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+          sh 'echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin'
+        }
+      }
+    }
     stage('Build Docker Image') {
       steps {
         dir('docker') {
@@ -23,13 +30,7 @@ pipeline {
         }
       }
     }
-    stage('Login to Docker Hub') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-          sh 'echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin'
-        }
-      }
-    }
+
     stage('Push Image') {
       steps {
         sh "docker push ${DOCKER_IMAGE}"
