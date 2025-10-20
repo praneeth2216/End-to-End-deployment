@@ -47,7 +47,7 @@ pipeline {
     stage('Deploy to Kubernetes') {
       steps {
         // Use kubeconfig secret file from Jenkins credentials and apply the modified deployment
-        withCredentials([file(credentialsId: env.KUBECONFIG_CRED, variable: 'KUBECONFIG_FILE')]) {
+        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
           // write kubeconfig to KUBECONFIG path used by kubectl
           sh 'export KUBECONFIG=$KUBECONFIG_FILE; kubectl apply -f Kuberentes/deployment-apply.yaml'
         }
