@@ -39,7 +39,8 @@ pipeline {
       steps {
         // Replace image tag inside a copied deployment file so original is preserved
         sh "cp Kuberentes/deployment.yaml Kuberentes/deployment-apply.yaml"
-        sh "sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' Kuberentes/deployment-apply.yaml"
+        // Prefer yq for robust YAML editing; fall back to sed if yq missing
+        sh "if command -v yq >/dev/null 2>&1; then yq eval '.spec.template.spec.containers[0].image = \"${DOCKER_IMAGE}\"' -i Kuberentes/deployment-apply.yaml; else sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' Kuberentes/deployment-apply.yaml; fi"
       }
     }
     stage('Deploy to Kubernetes') {
