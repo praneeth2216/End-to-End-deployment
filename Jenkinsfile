@@ -5,6 +5,7 @@ pipeline {
   }
   environment {
     DOCKERHUB_CREDENTIALS = 'dockerhub-credentials' // store as Jenkins credential (username/password)
+    KUBECONFIG_CRED = 'kubeconfig' // store your kubeconfig as a Jenkins "Secret file" credential
     DOCKER_IMAGE = "praneeth2216/weekendflaskapp:${IMAGE_TAG}"
   }
   stages {
@@ -34,10 +35,20 @@ pipeline {
         sh "docker push ${DOCKER_IMAGE}"
       }
     }
+    stage('Prepare deployment') {
+      steps {
+        // Replace image tag inside a copied deployment file so original is preserved
+        sh "cp Kuberentes/deployment.yaml Kuberentes/deployment-apply.yaml"
+        sh "sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' Kuberentes/deployment-apply.yaml"
+      }
+    }
     stage('Deploy to Kubernetes') {
       steps {
-        // Assumes Jenkins agent has kubectl configured or kubeconfig stored as Jenkins credential
-        sh 'kubectl apply -f Kuberentes/deployment.yaml'
+        // Use kubeconfig secret file from Jenkins credentials and apply the modified deployment
+        withCredentials([file(credentialsId: env.KUBECONFIG_CRED, variable: 'KUBECONFIG_FILE')]) {
+          // write kubeconfig to KUBECONFIG path used by kubectl
+          sh 'export KUBECONFIG=$KUBECONFIG_FILE; kubectl apply -f Kuberentes/deployment-apply.yaml'
+        }
       }
     }
   }
